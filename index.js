@@ -4,8 +4,10 @@ require('dotenv').config();
 const session = require('express-session');
 
 const app = express();
+const bcrypt = require('bcrypt');
 const port = process.env.PORT || 3000;
 const node_session_secret = process.env.NODE_SESSION_SECRET;
+const saltRounds = 12;
 
 // To render ejs
 app.set('view engine', 'ejs');
@@ -17,6 +19,8 @@ app.use(session({
     resave: true
 }));
 
+const users = [];
+
 app.get('/', (req, res) => {
     res.render("home");
 });
@@ -25,11 +29,46 @@ app.get('/login', (req, res)=> {
     res.render("login")
 });
 
+app.get('/signup', (req, res) => {
+    res.render("signup");
+});
+
+app.post("/registerUser", (req, res) =>{
+    const name = req.body.name;
+    const email = req.body.email;
+    const password = req.body.password
+
+    const hashedPassword = bcrypt.hashSync(password, saltRounds);
+
+    users.push({name, email, password})
+
+    res.render("home", {name, email, hashedPassword});
+});
+
 app.post('/verifyLogin', (req, res) => {
     const email = req.body.email;
     const password = req.body.password;
+    var name;
 
-    res.render("home", {email, password});
+    var foundUser = false;
+
+    for(let i = 0; i < users.length; i++){
+        const userEmail = users[i].email;
+
+        if(userEmail === email){
+            foundUser = true;
+            name = users[i].name
+        }
+    }
+
+    if(!foundUser){
+        res.redirect("/login");
+        return;
+    }
+
+    const hashedPassword = bcrypt.hashSync(password, saltRounds);
+
+    res.render("home", {name, email, hashedPassword});
 });
 
 app.get('/about', (req,res) => {

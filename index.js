@@ -1,28 +1,47 @@
 const express = require('express');
 require('dotenv').config();
 
-const session = require('express-session');
-
 const app = express();
 const bcrypt = require('bcrypt');
+
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const port = process.env.PORT || 3000;
-const node_session_secret = process.env.NODE_SESSION_SECRET;
+
 const saltRounds = 12;
+const expireTime = 60 * 60 * 1000; //expires after 1 hour  (minutes * seconds * millis)
+const node_session_secret = process.env.NODE_SESSION_SECRET;
 
 // To render ejs
 app.set('view engine', 'ejs');
 app.use(express.urlencoded({extended: false}));
 
-app.use(session({
-    secret: node_session_secret,
-    saveUninitialized: false,
-    resave: true
-}));
-
 const users = [];
 
+/* secret information section */
+const mongodb_user = process.env.MONGODB_USER;
+const mongodb_password = process.env.MONGODB_PASSWORD;
+const mongodb_host = process.env.MONGODB_HOST;
+const mongodb_database = process.env.MONGODB_DATABASE;
+
+var mongoStore = MongoStore.create({
+    mongoUrl: `mongodb+srv://${mongodb_user}:${mongodb_password}@${mongodb_host}/${mongodb_database}`
+});
+
+app.use(session({ 
+    secret: node_session_secret,
+	store: mongoStore, //default is memory store 
+	saveUninitialized: false, 
+	resave: true
+}
+));
+
 app.get('/', (req, res) => {
-    res.render("home");
+    if(req.session.authenticated){
+        res.render("home");
+    } else {
+        res.render("login");
+    }
 });
 
 app.get('/login', (req, res)=> {
@@ -40,7 +59,10 @@ app.post("/registerUser", (req, res) =>{
 
     const hashedPassword = bcrypt.hashSync(password, saltRounds);
 
-    users.push({name, email, hashedPassword})
+    users.push({name, email, hashedPassword});
+
+    req.session.authenticated = true;
+    req.session.cookie.maxAge = expireTime;
 
     res.render("home", {name, email, hashedPassword});
 });
@@ -50,6 +72,7 @@ app.post('/verifyLogin', (req, res) => {
     const email = req.body.email;
     const password = req.body.password;
     var name;
+    var hashedPassword;
 
     var foundUser = false;
     console.log("There are " + users.length + " users.")
@@ -66,13 +89,16 @@ app.post('/verifyLogin', (req, res) => {
             if(bcrypt.compareSync(password, users[i].hashedPassword)){
                 foundUser = true;
                 name = users[i].name
+                hashedPassword = users[i].hashedPassword
+                req.session.authenticated = true;
+                req.session.cookie.maxAge = expireTime;
+                console.log("username: " + name)
+                break;
             } else{
                 console.log ("User found but incorrect password!");
                 res.redirect("/login");
                 return;
             }
-
-            console.log("username: " + name)
         }
     }
 
@@ -80,8 +106,6 @@ app.post('/verifyLogin', (req, res) => {
         res.redirect("/login");
         return;
     }
-
-    const hashedPassword = bcrypt.hashSync(password, saltRounds);
 
     res.render("home", {name, email, hashedPassword});
 });
@@ -97,6 +121,7 @@ app.get('/home', (req, res) =>{
 });
 
 app.get('/logout', (req,res) => {
+    req.session.destroy();
     res.redirect('/login');
 });
 

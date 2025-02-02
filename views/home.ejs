@@ -4,4 +4,10 @@
 <p>Email is: <%= email%> </br>Password is: <%= hashedPassword %>
 </p>
 
+<br>
+
+<form action="/logout" method="get">
+    <button>Logout</button>
+</form>
+
 <%- include("templates/footer") %> 

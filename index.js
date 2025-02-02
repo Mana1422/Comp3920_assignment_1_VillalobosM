@@ -40,24 +40,39 @@ app.post("/registerUser", (req, res) =>{
 
     const hashedPassword = bcrypt.hashSync(password, saltRounds);
 
-    users.push({name, email, password})
+    users.push({name, email, hashedPassword})
 
     res.render("home", {name, email, hashedPassword});
 });
 
+// Check if the user is in the database.
 app.post('/verifyLogin', (req, res) => {
     const email = req.body.email;
     const password = req.body.password;
     var name;
 
     var foundUser = false;
+    console.log("There are " + users.length + " users.")
 
     for(let i = 0; i < users.length; i++){
         const userEmail = users[i].email;
+        
+
+        console.log("Current email: " +userEmail)
+        console.log("email enterd: "+ email)
 
         if(userEmail === email){
-            foundUser = true;
-            name = users[i].name
+            
+            if(bcrypt.compareSync(password, users[i].hashedPassword)){
+                foundUser = true;
+                name = users[i].name
+            } else{
+                console.log ("User found but incorrect password!");
+                res.redirect("/login");
+                return;
+            }
+
+            console.log("username: " + name)
         }
     }
 
@@ -79,6 +94,10 @@ app.get('/about', (req,res) => {
 
 app.get('/home', (req, res) =>{
     res.send('Welcome! Come in please')
+});
+
+app.get('/logout', (req,res) => {
+    res.redirect('/login');
 });
 
 // for images 

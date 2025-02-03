@@ -47,40 +47,69 @@ app.use(session({
 }
 ));
 
+// main page depends whether the user has a valid session
 app.get('/', (req, res) => {
     if(!req.session.authenticated){
-        res.render("login");
+        // If there is no valid session
+        // then redirect to main page
+        res.render("main");
         return;
     } 
 
-    res.render("home");
+    const username = req.session.username;
+
+    res.render("home", {username});
 });
 
 app.get('/login', (req, res)=> {
+    if(req.session.authenticated){
+        const username = req.session.username;
+        
+        res.render("home", {username});
+        return;
+    }
+
     res.render("login")
 });
 
 app.get('/signup', (req, res) => {
+    if(req.session.authenticated){
+        const username = req.session.username;
+        
+        res.render("home", {username});
+        return;
+    }
+
     res.render("signup");
 });
 
+// To add new user to the database
 app.post("/registerUser", async (req, res) =>{
+    // Variables coming from the form in sign up page
     const username = req.body.username;
-    const password = req.body.password
+    const password = req.body.password;
 
+    if(username.length == 0 && password.length == 0){
+        res.render("errorMessage", {error: "Username or password can't be empty!."});
+        return;
+    }
+
+    // to hashed the password using bycript
     const hashedPassword = bcrypt.hashSync(password, saltRounds);
 
+    // To store the users in the database
     var success = await db_users.createUser({ user: username, hashedPassword: hashedPassword });
 
-    // users.push({name, email, hashedPassword});
-
+    // If something went wrong display feedback
     if (!success){
-
         res.render("errorMessage", {error: "Failed to create user."} );
     }
 
+    // Create the session
     req.session.authenticated = true;
+    // Record the username
     req.session.username = username
+    // Set the expire time for the session
     req.session.cookie.maxAge = expireTime;
 
     res.render("home", {username});
@@ -88,13 +117,19 @@ app.post("/registerUser", async (req, res) =>{
 
 // Check if the user is in the database.
 app.post('/verifyLogin', async (req, res) => {
+    // Variables coming from the form in the login page
     const username = req.body.username;
     const password = req.body.password;
 
+    // search the user in the database
     var results = await db_users.getUser({ user: username, hashedPassword: password });
 
+    // Check the results database
     if (results && results.length > 0){
+        // Check if there are more than one user with same username
         if (results.length = 1){
+
+            // Compare the password
             if (bcrypt.compareSync(password, results[0].password)) {
                 req.session.authenticated = true;
                 req.session.username = username;
@@ -103,11 +138,13 @@ app.post('/verifyLogin', async (req, res) => {
                 res.render("home", {username});
                 return;
             } else {
+                // Password did not match
                 console.log("invalid password");
-                res.redirect('/login');
+                res.redirect('/main');
                 return;  
             }
         } else {
+            // There are more than one user with same username
             console.log('invalid number of users matched: '+ results.length + " (expected 1).");
             res.redirect('/login');
             return;     
@@ -120,14 +157,14 @@ app.post('/verifyLogin', async (req, res) => {
     res.redirect("/login");
 });
 
-app.get('/about', (req,res) => {
-	const color = req.query.color;
-	
-	res.send("<h1 style='color:" + color +";'>Manases Villalobos</h1>")
-});
-
 app.get('/home', (req, res) =>{
-    res.send('Welcome! Come in please')
+    if(req.session.authenticated){
+        const username = req.session.username;
+        res.render("home", {username});
+        return;
+    }
+
+    res.render("main");
 });
 
 app.get('/createTables', async (req,res) => {
@@ -144,6 +181,7 @@ app.get('/createTables', async (req,res) => {
 });
 
 app.get('/logout', (req,res) => {
+    // end the session
     req.session.destroy();
     res.redirect('/login');
 });
@@ -151,6 +189,7 @@ app.get('/logout', (req,res) => {
 // for images 
 app.use(express.static(__dirname + "/public"))
 
+// Catch all not found pages
 app.get('*', (req, res) => {
     res.status(404);
     res.send('Page not found - 404')

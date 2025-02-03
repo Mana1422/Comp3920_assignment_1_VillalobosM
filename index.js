@@ -1,3 +1,5 @@
+require('./utils');
+
 const express = require('express');
 require('dotenv').config();
 
@@ -11,6 +13,10 @@ const port = process.env.PORT || 3000;
 const saltRounds = 12;
 const expireTime = 60 * 60 * 1000; //expires after 1 hour  (minutes * seconds * millis)
 const node_session_secret = process.env.NODE_SESSION_SECRET;
+
+const database = include('databaseConnection');
+const db_utils = include('database/db_utils');
+const success = db_utils.printMySQLVersion();
 
 // To render ejs
 app.set('view engine', 'ejs');
@@ -123,6 +129,19 @@ app.get('/about', (req,res) => {
 
 app.get('/home', (req, res) =>{
     res.send('Welcome! Come in please')
+});
+
+app.get('/createTables', async (req,res) => {
+
+    const create_tables = include('database/create_tables.js');
+
+    var success = create_tables.createTables();
+    if (success) {
+        res.render("successMessage", {message: "Created tables."} );
+    }
+    else {
+        res.render("errorMessage", {error: "Failed to create tables."} );
+    }
 });
 
 app.get('/logout', (req,res) => {

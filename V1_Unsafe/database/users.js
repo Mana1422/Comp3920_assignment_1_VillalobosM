@@ -86,7 +86,10 @@ async function getUser(postData) {
         console.log("Successfully found user");
 		console.log(results[0]);
 
-		if (!results.password) {
+		// const password = results[0][0].password;
+		// console.log("User is " + password)
+
+		if (!results[0][0].password) {
 			console.log("No password found for user.");
 			return false;
 		}

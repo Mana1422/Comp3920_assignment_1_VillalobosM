@@ -16,6 +16,7 @@ const node_session_secret = process.env.NODE_SESSION_SECRET;
 
 const database = include('databaseConnection');
 const db_utils = include('database/db_utils');
+const db_users = include('database/users');
 const success = db_utils.printMySQLVersion();
 
 // To render ejs
@@ -63,62 +64,60 @@ app.get('/signup', (req, res) => {
     res.render("signup");
 });
 
-app.post("/registerUser", (req, res) =>{
-    const name = req.body.name;
-    const email = req.body.email;
+app.post("/registerUser", async (req, res) =>{
+    const username = req.body.username;
     const password = req.body.password
 
     const hashedPassword = bcrypt.hashSync(password, saltRounds);
 
-    users.push({name, email, hashedPassword});
+    var success = await db_users.createUser({ user: username, hashedPassword: hashedPassword });
+
+    // users.push({name, email, hashedPassword});
+
+    if (!success){
+
+        res.render("errorMessage", {error: "Failed to create user."} );
+    }
 
     req.session.authenticated = true;
+    req.session.username = username
     req.session.cookie.maxAge = expireTime;
 
-    res.render("home", {name, email, hashedPassword});
+    res.render("home", {username});
 });
 
 // Check if the user is in the database.
-app.post('/verifyLogin', (req, res) => {
-    const email = req.body.email;
+app.post('/verifyLogin', async (req, res) => {
+    const username = req.body.username;
     const password = req.body.password;
-    var name;
-    var hashedPassword;
 
-    var foundUser = false;
-    console.log("There are " + users.length + " users.")
+    var results = await db_users.getUser({ user: username, hashedPassword: password });
 
-    for(let i = 0; i < users.length; i++){
-        const userEmail = users[i].email;
-        
-
-        console.log("Current email: " +userEmail)
-        console.log("email enterd: "+ email)
-
-        if(userEmail === email){
-            
-            if(bcrypt.compareSync(password, users[i].hashedPassword)){
-                foundUser = true;
-                name = users[i].name
-                hashedPassword = users[i].hashedPassword
+    if (results && results.length > 0){
+        if (results.length = 1){
+            if (bcrypt.compareSync(password, results[0].password)) {
                 req.session.authenticated = true;
+                req.session.username = username;
                 req.session.cookie.maxAge = expireTime;
-                console.log("username: " + name)
-                break;
-            } else{
-                console.log ("User found but incorrect password!");
-                res.redirect("/login");
+            
+                res.render("home", {username});
                 return;
+            } else {
+                console.log("invalid password");
+                res.redirect('/login');
+                return;  
             }
+        } else {
+            console.log('invalid number of users matched: '+ results.length + " (expected 1).");
+            res.redirect('/login');
+            return;     
         }
-    }
+    } 
 
-    if(!foundUser){
-        res.redirect("/login");
-        return;
-    }
+    console.log('user not found');
 
-    res.render("home", {name, email, hashedPassword});
+    // User and password combination not found
+    res.redirect("/login");
 });
 
 app.get('/about', (req,res) => {

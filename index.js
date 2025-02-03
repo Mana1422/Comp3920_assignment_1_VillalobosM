@@ -1,7 +1,7 @@
 require('./utils');
 
 const express = require('express');
-require('dotenv').config({ path: '../.env' });
+require('dotenv').config();
 
 const app = express();
 const bcrypt = require('bcrypt');
@@ -122,7 +122,8 @@ app.post('/verifyLogin', async (req, res) => {
     const password = req.body.password;
 
     // search the user in the database
-    var results = await db_users.getUser({ user: username, hashedPassword: password });
+    // var results = await db_users.getUser({ user: username, hashedPassword: password });
+    var results = await db_users.getUser({ user: username });
 
     // Check the results database
     if (results && results.length > 0){
@@ -140,7 +141,7 @@ app.post('/verifyLogin', async (req, res) => {
             } else {
                 // Password did not match
                 console.log("invalid password");
-                res.redirect('/main');
+                res.redirect('/');
                 return;  
             }
         } else {

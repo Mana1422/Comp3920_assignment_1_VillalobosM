@@ -23,9 +23,13 @@ const mongodb_user = process.env.MONGODB_USER;
 const mongodb_password = process.env.MONGODB_PASSWORD;
 const mongodb_host = process.env.MONGODB_HOST;
 const mongodb_database = process.env.MONGODB_DATABASE;
+const mongodb_session_secret = process.env.MONGODB_SESSION_SECRET;
 
 var mongoStore = MongoStore.create({
-    mongoUrl: `mongodb+srv://${mongodb_user}:${mongodb_password}@${mongodb_host}/${mongodb_database}`
+    mongoUrl: `mongodb+srv://${mongodb_user}:${mongodb_password}@${mongodb_host}/${mongodb_database}`,
+    crypto: {
+        secret: mongodb_session_secret
+    }
 });
 
 app.use(session({ 
@@ -37,11 +41,12 @@ app.use(session({
 ));
 
 app.get('/', (req, res) => {
-    if(req.session.authenticated){
-        res.render("home");
-    } else {
+    if(!req.session.authenticated){
         res.render("login");
-    }
+        return;
+    } 
+
+    res.render("home");
 });
 
 app.get('/login', (req, res)=> {

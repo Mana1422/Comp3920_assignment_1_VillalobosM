@@ -13,7 +13,7 @@ async function createUser(postData) {
 		INSERT INTO user
 		(username, password)
 		VALUES
-		(${postData.user}, ${postData.hashedPassword});
+		('${postData.user}', '${postData.hashedPassword}');
 	`;
 
 	// let params = {

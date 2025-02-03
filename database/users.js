@@ -1,19 +1,11 @@
 const database = include('databaseConnection');
 
 async function createUser(postData) {
-	// Ensure that postData.user and postData.hashedPassword exist
-    if (!postData.user || !postData.hashedPassword || 
-		typeof postData.user !== "string" ||
-	    typeof postData.hashedPassword !== "string") {
-        console.log("Invalid input provided for creating user.");
-        return false;
-    }
-
 	let createUserSQL = `
 		INSERT INTO user
 		(username, password)
 		VALUES
-		(${postData.user}, ${postData.hashedPassword});
+		('${postData.user}', '${postData.hashedPassword}');
 	`;
 
 	// let params = {

@@ -1,7 +1,7 @@
 require('./utils');
 
 const express = require('express');
-require('dotenv').config();
+require('dotenv').config({ path: '../.env' });
 
 const app = express();
 const bcrypt = require('bcrypt');
@@ -122,7 +122,8 @@ app.post('/verifyLogin', async (req, res) => {
     const password = req.body.password;
 
     // search the user in the database
-    var results = await db_users.getUser({ user: username, hashedPassword: password });
+    // var results = await db_users.getUser({ user: username, hashedPassword: password });
+    var results = await db_users.getUser({ user: username });
 
     // Check the results database
     if (results && results.length > 0){
@@ -140,7 +141,7 @@ app.post('/verifyLogin', async (req, res) => {
             } else {
                 // Password did not match
                 console.log("invalid password");
-                res.redirect('/main');
+                res.redirect('/');
                 return;  
             }
         } else {
@@ -178,6 +179,13 @@ app.get('/createTables', async (req,res) => {
     else {
         res.render("errorMessage", {error: "Failed to create tables."} );
     }
+});
+
+app.get('/showUsers', async (req,res) => {
+    usersList = await db_users.getUsers(1);
+
+
+    res.render("showUsers", {usersList});
 });
 
 app.get('/logout', (req,res) => {

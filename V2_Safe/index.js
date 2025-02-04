@@ -63,20 +63,16 @@ app.get('/', (req, res) => {
 
 app.get('/login', (req, res)=> {
     if(req.session.authenticated){
-        const username = req.session.username;
-        
-        res.render("home", {username});
+        res.redirect("/");
         return;
     }
 
-    res.render("login")
+    res.redirect("/");
 });
 
 app.get('/signup', (req, res) => {
     if(req.session.authenticated){
-        const username = req.session.username;
-        
-        res.render("home", {username});
+        res.redirect("/");
         return;
     }
 
@@ -112,7 +108,7 @@ app.post("/registerUser", async (req, res) =>{
     // Set the expire time for the session
     req.session.cookie.maxAge = expireTime;
 
-    res.render("home", {username});
+    res.redirect("/");
 });
 
 // Check if the user is in the database.
@@ -135,18 +131,18 @@ app.post('/verifyLogin', async (req, res) => {
                 req.session.username = username;
                 req.session.cookie.maxAge = expireTime;
             
-                res.render("home", {username});
+                res.redirect("/");
                 return;
             } else {
                 // Password did not match
                 console.log("invalid password");
-                res.redirect('/main');
+                res.redirect('/');
                 return;  
             }
         } else {
             // There are more than one user with same username
             console.log('invalid number of users matched: '+ results.length + " (expected 1).");
-            res.redirect('/login');
+            res.redirect('/');
             return;     
         }
     } 
@@ -154,13 +150,12 @@ app.post('/verifyLogin', async (req, res) => {
     console.log('user not found');
 
     // User and password combination not found
-    res.redirect("/login");
+    res.redirect("/");
 });
 
 app.get('/home', (req, res) =>{
     if(req.session.authenticated){
-        const username = req.session.username;
-        res.render("home", {username});
+        res.redirect("/");
         return;
     }
 
